@@ -25,7 +25,6 @@ Importer.loadQtBinding("qt.core");
 Importer.loadQtBinding("qt.gui");
 Importer.loadQtBinding("qt.network");
 Importer.loadQtBinding("qt.uitools");
-//Importer.include("auth.js");
 
 var settingsStore = new QSettings(Amarok.Info.scriptPath()+"/"+"saved_preferences", QSettings.IniFormat);
 settingsStore.beginGroup("vk_search");
@@ -55,13 +54,6 @@ function Dialog() {
                         ts = Math.round((new Date()).getTime() / 1000);
 
                     }
-//                    Amarok.debug('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-//                    Amarok.debug('token: '+token);
-//                    Amarok.debug('expire: '+expire);
-//                    Amarok.debug('user_id: '+user_id);
-//                    Amarok.debug('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
-//                    var settingsStore = new QSettings(Amarok.Info.scriptPath()+"/"+"saved_preferences", QSettings.IniFormat);
-//                    settingsStore.beginGroup("vk_search");
                     settingsStore.setValue('token', token);
                     settingsStore.setValue('expire', expire);
                     settingsStore.setValue('user_id', user_id);
@@ -108,7 +100,6 @@ function VkFetchResult(reply) {
     reply = JSON.parse(reply)
     if (reply['error']) {
         dialog.show();
-        //script.donePopulating();
     } else {
         uids = JSON.stringify(reply['response']); //Вместо того, чтобы обрабатывать в цикле, просто сделаем строку и грохнем [] вокруг нее ;)
         uids = uids.replace('[', '')
@@ -124,7 +115,6 @@ function SetFriendsList(reply) {
         reply = JSON.parse(reply);
         if (reply['error']) {
             dialog.show();
-            //script.donePopulating();
         } else {
             users = reply['response'];
             for (var i = 0; i < users.length; i++)
@@ -155,7 +145,6 @@ function getAudio(reply) {
     reply = JSON.parse(reply);
     if (reply['error']) {
         dialog.show();
-        //script.donePopulating();
     } else {
         audiolist = reply['response']; //each entrie represents a music clip
         for (var i = 0; i < audiolist.length; i++) {
@@ -183,7 +172,6 @@ function search(reply) {
     reply = JSON.parse(reply);
     if (reply['error']) {
         dialog.show();
-        //script.donePopulating();
     } else {
         audiolist = reply['response']; //each entrie represents a music clip
         var checkArray={};
@@ -261,7 +249,6 @@ function onPopulate(level, callback, filter) {
                 Amarok.debug( err );
             }
         } else {
-            //Amarok.debug("Items to filter: "+unique_songs.length+" callback = " + callback);
             for (var i = 0; i < unique_songs.length; i++) {
                 var elt = unique_songs[i];
                 var artist = elt.artist;
