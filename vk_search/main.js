@@ -84,6 +84,7 @@ function vk_search() {
                 var d = new Downloader(qurl, function(reply){
                     reply = JSON.parse(reply);
                     if (reply['response']['text'] && !reply['response']['audio']) {
+                        last_status = reply['response']['text'];
                         settingsStore.setValue('last_status', reply['response']['text']);
                         settingsStore.sync();
                     }
