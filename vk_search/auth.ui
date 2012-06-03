@@ -25,7 +25,7 @@
     </property>
     <property name="url">
      <url>
-      <string>about:blank</string>
+      <string>http://oauth.vk.com/oauth/authorize?client_id=2969829&amp;scope=friends,audio&amp;redirect_uri=http://oauth.vk.com/blank.html&amp;display=popup&amp;response_type=token&amp;_hash=0</string>
      </url>
     </property>
    </widget>
