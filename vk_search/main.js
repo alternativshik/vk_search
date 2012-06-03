@@ -38,9 +38,8 @@ function Dialog() {
     uiFile.open(QIODevice.ReadOnly);
     this.dialog = UIloader.load(uiFile,this);
     webView = this.dialog.centralwidget.webView;
-    //Amarok crashes if put this in ui file...
-    var authUrl = new QUrl('http://oauth.vk.com/authorize?client_id=2969829&scope=friends,audio&redirect_uri=http://oauth.vk.com/blank.html&display=popup&response_type=token');
-    webView.url = authUrl;
+    //var authUrl = new QUrl('http://oauth.vk.com/authorize?client_id=2969829&scope=friends,audio&redirect_uri=http://oauth.vk.com/blank.html&display=popup&response_type=token');
+    //webView.url = authUrl;
     webView.urlChanged.connect(this, function(){
                 url = webView.url.toString();
                 url = url.split('#');
