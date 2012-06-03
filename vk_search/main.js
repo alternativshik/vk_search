@@ -30,6 +30,7 @@ var settingsStore = new QSettings(Amarok.Info.scriptPath()+"/"+"saved_preference
 settingsStore.beginGroup("vk_search");
 var token = settingsStore.value("token", null);
 var user_id = settingsStore.value("user_id", null);
+var last_status = settingsStore.value("last_status");
 var unique_songs = [];
 
 function Dialog() {
@@ -75,16 +76,71 @@ function vk_search() {
         var d = new Downloader(qurl, function(reply){
             reply = JSON.parse(reply);
             if (reply['response'] == 0) {
-                script.donePopulating();
+                //script.donePopulating();
                 dialog.show();
+            } else {
+                var path = "https://api.vk.com/method/status.get?uid="+user_id+"&access_token="+token;
+                var qurl = new QUrl(path);
+                var d = new Downloader(qurl, function(reply){
+                    reply = JSON.parse(reply);
+                    if (reply['response']['text'] && !reply['response']['audio']) {
+                        settingsStore.setValue('last_status', reply['response']['text']);
+                        settingsStore.sync();
+                    }
+                });
             }
         });
     }
     if (!user_id || !token) {
         dialog.show();
     }
+    Amarok.Engine.trackChanged.connect(
+        function() {
+            if (Amarok.Engine.engineState() == 0) {
+                setAudioStatus();
+            } else {
+                setTextStatus();
+            }
+        }
+    );
+
+    Amarok.Engine.trackPlayPause.connect(
+        function(state){
+            if (state == 1) { // paused
+                setTextStatus();
+            } else {
+                setAudioStatus(); // resumed
+            }
+        }
+    );
        // setup service
     ScriptableServiceScript.call( this, "vk_search", 2, "Search & listen music from VK.com", "Vkontakte.ru", true);
+}
+
+function setTextStatus() {
+    var path = "https://api.vk.com/method/status.set?uid="+user_id+"&text="+last_status+"&access_token="+token;
+    var qurl = new QUrl(path);
+    var d = new Downloader(qurl, function(reply){
+        reply = JSON.parse(reply);
+        if (reply['response'] != 1) {
+            Amarok.Window.Statusbar.shortMessage( "VK.com: Enable music tranlation in your vk.com account!" );
+        }
+    });
+}
+
+function setAudioStatus() {
+    var audio = Amarok.Engine.currentTrack().url;
+    audio = audio.split('#');
+    if (audio.length > 1) {
+        var path = "https://api.vk.com/method/status.set?uid="+user_id+"&audio="+audio[1]+"&access_token="+token;
+        var qurl = new QUrl(path);
+        var d = new Downloader(qurl, function(reply){
+            reply = JSON.parse(reply);
+            if (reply['response'] != 1) {
+                Amarok.Window.Statusbar.shortMessage( "VK.com: Enable music tranlation in your vk.com account!" );
+            }
+        });
+    }
 }
 
 // set service appearance
@@ -149,7 +205,7 @@ function getAudio(reply) {
         for (var i = 0; i < audiolist.length; i++) {
             var artist = audiolist[i]['artist'];
             var title = audiolist[i]['title'];
-            var url =  audiolist[i]['url'];
+            var url =  audiolist[i]['url']+"#"+audiolist[i]['owner_id']+"_"+audiolist[i]['aid'];
             var url = new QUrl(url);
             //create music clip item
             var item = Amarok.StreamItem;
@@ -180,7 +236,7 @@ function search(reply) {
             var fullTitle = title + " " + artist;
             var fullTitleLow = fullTitle.toLowerCase();
 
-            var url =  audiolist[i]['url'];
+            var url =  audiolist[i]['url']+"#"+audiolist[i]['owner_id']+"_"+audiolist[i]['aid'];
             var url = new QUrl(url);
             var duration =audiolist[i]['duration'];
             Amarok.debug(artist);

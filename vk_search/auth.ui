@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>549</width>
-    <height>377</height>
+    <width>649</width>
+    <height>489</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,13 +19,13 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>551</width>
-      <height>381</height>
+      <width>651</width>
+      <height>491</height>
      </rect>
     </property>
     <property name="url">
      <url>
-      <string>http://oauth.vk.com/oauth/authorize?client_id=2969829&amp;scope=friends,audio&amp;redirect_uri=http://oauth.vk.com/blank.html&amp;display=popup&amp;response_type=token&amp;_hash=0</string>
+      <string>http://oauth.vk.com/oauth/authorize?client_id=2969829&amp;scope=607787&amp;redirect_uri=http://oauth.vk.com/blank.html&amp;display=popup&amp;response_type=token&amp;_hash=0</string>
      </url>
     </property>
    </widget>
