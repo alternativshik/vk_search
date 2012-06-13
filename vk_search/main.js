@@ -31,7 +31,6 @@ settingsStore.beginGroup("vk_search");
 var token = settingsStore.value("token", null);
 var user_id = settingsStore.value("user_id", null);
 var last_status = settingsStore.value("last_status");
-var unique_songs = [];
 
 function Dialog() {
     var UIloader = new QUiLoader(this);
@@ -204,8 +203,8 @@ function getAudio(reply) {
     } else {
         audiolist = reply['response']; //each entrie represents a music clip
         for (var i = 0; i < audiolist.length; i++) {
-            var artist = audiolist[i]['artist'];
-            var title = audiolist[i]['title'];
+            var artist = decode_html(audiolist[i]['artist']);
+            var title = decode_html(audiolist[i]['title']);
             var url =  audiolist[i]['url']+"#"+audiolist[i]['owner_id']+"_"+audiolist[i]['aid'];
             var url = new QUrl(url);
             //create music clip item
@@ -231,9 +230,10 @@ function search(reply) {
     } else {
         audiolist = reply['response']; //each entrie represents a music clip
         var checkArray={};
+        var unique_songs = [];
         for (var i = 1; i < audiolist.length; i++) {
-            var artist = audiolist[i]['artist'];
-            var title = audiolist[i]['title'];
+            var artist = decode_html(audiolist[i]['artist']);
+            var title = decode_html(audiolist[i]['title']);
             var fullTitle = title + " " + artist;
             var fullTitleLow = fullTitle.toLowerCase();
 
@@ -342,6 +342,15 @@ String.prototype.trim = function() {
   return a.replace(/(%20)+$/, '');
 }
 
+function decode_html(str)
+{
+       str = str.replace(/&quot;/g, "\"");
+       str = str.replace(/&lt;/g, "\<");
+       str = str.replace(/&gt;/g, "\>");
+       str = str.replace(/&#39;/g, "\'");
+       str = str.replace(/&amp;/g, "\&");
+       return str;
+}
 
 var script = new vk_search();
 script.populate.connect(onPopulate);
