@@ -110,8 +110,12 @@ function getStatus() {
     var qurl = new QUrl(path);
     var d = new Downloader(qurl, function(reply){
         reply = JSON.parse(reply);
-        if (reply['response']['text'] && !reply['response']['audio']) {
-            last_status = reply['response']['text'];
+        if (!reply['response']['audio']) {
+            if (reply['response']['text']) {
+                last_status = reply['response']['text'];
+            } else {
+                last_status = "";
+            }
             settingsStore.setValue('last_status', reply['response']['text']);
             settingsStore.sync();
         }
