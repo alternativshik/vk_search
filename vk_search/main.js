@@ -101,6 +101,12 @@ function vk_search() {
             }
         }
     );
+    
+    Amarok.Engine.trackFinished.connect(
+        function() {
+            setTextStatus();
+        }
+    );
        // setup service
     ScriptableServiceScript.call( this, "vk_search", 2, "Search & listen music from VK.com", "Vkontakte.ru", true);
 }
