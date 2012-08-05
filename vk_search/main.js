@@ -122,7 +122,7 @@ function getStatus() {
             } else {
                 last_status = "";
             }
-            settingsStore.setValue('last_status', reply['response']['text']);
+            settingsStore.setValue('last_status', last_status);
             settingsStore.sync();
         }
     });
