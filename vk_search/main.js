@@ -101,6 +101,12 @@ function vk_search() {
             }
         }
     );
+    
+    Amarok.Engine.trackFinished.connect(
+        function() {
+            setTextStatus();
+        }
+    );
        // setup service
     ScriptableServiceScript.call( this, "vk_search", 2, "Search & listen music from VK.com", "Vkontakte.ru", true);
 }
@@ -110,9 +116,13 @@ function getStatus() {
     var qurl = new QUrl(path);
     var d = new Downloader(qurl, function(reply){
         reply = JSON.parse(reply);
-        if (reply['response']['text'] && !reply['response']['audio']) {
-            last_status = reply['response']['text'];
-            settingsStore.setValue('last_status', reply['response']['text']);
+        if (!reply['response']['audio']) {
+            if (reply['response']['text']) {
+                last_status = reply['response']['text'];
+            } else {
+                last_status = "";
+            }
+            settingsStore.setValue('last_status', last_status);
             settingsStore.sync();
         }
     });
