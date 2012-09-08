@@ -212,7 +212,13 @@ function SetFriendsList(reply) {
 function getAudio(reply) {
     reply = JSON.parse(reply);
     if (reply['error']) {
-        dialog.show();
+        // Error codes from http://vk.com/developers.php?oid=-1&p=audio.edit
+        if (reply['error']["error_code"] == 5) { //User authorization failed.
+            dialog.show();
+        }
+        if (reply['error']["error_code"] == 201) {
+            Amarok.Window.Statusbar.shortMessage(reply['error']['error_msg']); // Access denied.
+        }
     } else {
         audiolist = reply['response']; //each entrie represents a music clip
         for (var i = 0; i < audiolist.length; i++) {
