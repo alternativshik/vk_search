@@ -1,5 +1,5 @@
 /*#########################################################################
-#   Amarok script for listen music from Vkontakte.ru (Vk.com)             #
+#   Amarok scripted service for vk.com (VKontakte) audio library.         #
 #                                                                         #
 #   Copyright                                                             #
 #   (C) 2009 Sergey Maltsev <alternativshik@gmail.com>                    #
