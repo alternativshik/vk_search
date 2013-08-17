@@ -153,8 +153,8 @@ function indexOf (obj, e) {
 
 // Removes leading/trailing spaces on a string.
 String.prototype.trim = function() {
-	a = this.replace (/^(%20)+/, '');
-	return a.replace (/(%20)+$/, '');
+	a = this.replace (/^( )+/, '');
+	return a.replace (/( )+$/, '');
 }
 
 // Decodes HTML escape sequences.
