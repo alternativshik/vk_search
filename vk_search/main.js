@@ -377,7 +377,7 @@ function readUserList (reply) {
 	script.donePopulating();
 }
 
-// Parses "audio.get" vk.com API request.
+// Parses "audio.get" and "audio.search" vk.com API requests.
 function readTrackList (reply) {
 	reply = JSON.parse (reply);
 
@@ -386,60 +386,37 @@ function readTrackList (reply) {
 	} else {
 		trackList = reply['response'];
 
+		var trackTable = {};
 		var artists = [];
-		for (var i = 0; i < trackList.length; i++) {
-			var artist = decode_html (trackList[i]['artist']);
-			Amarok.debug ("Adding track: artist = '" + artist + "', title = '" + trackList[i]['title'] + "'");
 
-			if (!artists[artist]) {
-				artists[artist] = "{ \"artist\": \"" + trackList[i]['artist'] + "\", \"tracks\": [";
+		for (var i = 0; i < trackList.length; i++) {
+			if (typeof trackList[i] != "object") {
+				Amarok.debug ("Skipping non-track: entry = " + trackList[i]);
+				continue;
 			}
 
-			artists[artist] += " { \"title\": \"" + trackList[i]['title'] + "\", \"url\": \"" + trackList[i]['url'] + "\" },"
-		}
-
-		for (var artist in artists) {
-			addArtist (artist, artists[artist].slice (0, -1) + " ] }");
-		}
-	}
-
-	script.donePopulating();
-}
-
-// Parses "audio.search" vk.com API request.
-function readSearchResult (reply) {
-	Amarok.debug ("Reading search results.");
-	reply = JSON.parse (reply);
-
-	if (reply['error']) {
-		handleReplyError (reply);
-	} else {
-		var trackList = reply['response'];
-
-		var checkArray = {};
-		var artists = [];
-
-		for (var i = 0; i < trackList.length; i++) {
-			var artist = decode_html (trackList[i]['artist']);
-			var title = decode_html (trackList[i]['title']);
-			var fullTitle = title + " " + artist;
-			var fullTitleLow = fullTitle.toLowerCase();
+			var artist = trackList[i]['artist'].trim();
+			var title = trackList[i]['title'].trim();
 			var duration = trackList[i]['duration'];
+			var url = trackList[i]['url'];
+			Amarok.debug ("Adding track: artist = '" + artist + "', title = '" + title + "'");
 
-			if (checkArray[fullTitleLow] && checkArray[fullTitleLow].length) {
-				if (indexOf (checkArray[fullTitleLow], duration) > -1) continue;
-				else checkArray[fullTitleLow].push (duration);
-			} else checkArray[fullTitleLow] = [duration];
+			// This is a duplicate check. Skip tracks with same artist, title and duration.
+			var fullTitle = (title + " | " + artist).toLowerCase();
+			if (trackTable[fullTitle] && trackTable[fullTitle].length) {
+				if (indexOf (trackTable[fullTitle], duration) > -1) continue;
+				else trackTable[fullTitle].push (duration);
+			} else trackTable[fullTitle] = [duration];
 
 			if (!artists[artist]) {
-				artists[artist] = "{ \"artist\": \"" + trackList[i]['artist'] + "\", \"tracks\": [";
+				artists[artist] = "{ \"artist\": \"" + artist + "\", \"tracks\": [";
 			}
 
-			artists[artist] += " { \"title\": \"" + trackList[i]['title'] + "\", \"url\": \"" + trackList[i]['url'] + "\" },"
+			artists[artist] += " { \"title\": \"" + title + "\", \"url\": \"" + url + "\" },"
 		}
 
 		for (var artist in artists) {
-			addArtist (artist, artists[artist].slice (0, -1) + " ] }");
+			addArtist (decode_html (artist), artists[artist].slice (0, -1) + " ] }");
 		}
 	}
 
@@ -452,38 +429,28 @@ function readSearchResult (reply) {
 // ########################################################################
 
 function onPopulate (level, callback, filter) {
-	if (level == 1) {
-		populateAlbumPerArtist (callback);
-	} else if (level == 0) {
+	if (level == 0) {
 		populateTracksPerAlbum (callback);
-	} else {
-		filter = filter.replace (/\&/g, '%26').trim().toLowerCase();
+	} else if (level == 1) {
+		populateAlbumPerArtist (callback);
+	} else if (level == 2) {
+		Amarok.Window.Statusbar.longMessage ("vk.com: Loading track list. This will probably take some time.");
+
+		var d = new Downloader (new QUrl (callback), readTrackList);
+	} else if (level == 3) {
+		filter = filter.trim();
 
 		if (filter == "") {
-			if (level == 3) {
-				Amarok.Window.Statusbar.longMessage ("vk.com: Loading user list. This will probably take some time.");
+			Amarok.Window.Statusbar.longMessage ("vk.com: Loading user list. This will probably take some time.");
 
-				var path = "https://api.vk.com/method/friends.get?order=hints&uid=" + user_id + "&access_token=" + token;
-				var d = new Downloader (new QUrl (path), readUIDs);
-			} else if (level == 2) {
-				Amarok.Window.Statusbar.longMessage ("vk.com: Loading track list. This will probably take some time.");
-
-				var path = callback;
-				var d = new Downloader (new QUrl (path), readTrackList);
-			}
+			var path = "https://api.vk.com/method/friends.get?order=hints&uid=" + user_id + "&access_token=" + token;
+			var d = new Downloader (new QUrl (path), readUIDs);
 		} else {
-			if (level == 3) {
-				Amarok.debug ("Inserting Search Results item.");
-				addFakeItem (3, "Search Results", "");
-				addFakeItem (3, "Search Results 2", "");
+			filter = filter.replace (/\&/g, '%26').toLowerCase();
 
-				script.donePopulating();
-			} else if (level == 2) {
-				Amarok.Window.Statusbar.longMessage ("vk.com: Loading search results. This will probably take some time.");
+			addFakeItem (3, "Search Results (" + filter + ")", "https://api.vk.com/method/audio.search?auto_complete=1&count=200&&q=" + filter + "&access_token=" + token);
 
-				var path = "https://api.vk.com/method/audio.search?auto_complete=1&count=200&&q=" + filter + "&access_token=" + token;
-				var b = new Downloader (new QUrl (path), readSearchResult);
-			}
+			script.donePopulating();
 		}
 	}
 }
