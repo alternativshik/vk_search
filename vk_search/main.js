@@ -25,46 +25,56 @@ Importer.loadQtBinding("qt.core");
 Importer.loadQtBinding("qt.gui");
 Importer.loadQtBinding("qt.network");
 Importer.loadQtBinding("qt.uitools");
+
 //native settings store seems broken
 var settingsStore = new QSettings(Amarok.Info.scriptPath()+"/"+"saved_preferences", QSettings.IniFormat);
 settingsStore.beginGroup("vk_search");
 var token = settingsStore.value("token", null);
 var user_id = settingsStore.value("user_id", null);
 var last_status = settingsStore.value("last_status");
+var init_success = true;
 
-function Dialog() {
+
+function AuthDialog() {
     var UIloader = new QUiLoader(this);
     var uiFile = new QFile (Amarok.Info.scriptPath() + "/auth.ui");
     uiFile.open(QIODevice.ReadOnly);
     this.dialog = UIloader.load(uiFile,this);
     webView = this.dialog.centralwidget.webView;
     webView.urlChanged.connect(this, function(){
-                url = webView.url.toString();
-                url = url.split('#');
-                if (url.length > 1) {
-                    this.dialog.hide();
-                    token_string = url[1].split('&');
-                    if (token_string.length == 3) {
-                        token = token_string[0].split('=')[1];
-                        expire = token_string[1].split('=')[1];
-                        user_id = token_string[2].split('=')[1];
-                        ts = Math.round((new Date()).getTime() / 1000);
-
-                    }
-                    settingsStore.setValue('token', token);
-                    settingsStore.setValue('expire', expire);
-                    settingsStore.setValue('user_id', user_id);
-                    settingsStore.setValue('get', ts);
-                    settingsStore.sync();
-                    onPopulate(1, null, "");
-                }
-            });
+        url = webView.url.toString();
+        url = url.split('#');
+        if (url.length > 1) {
+            this.dialog.hide();
+            token_string = url[1].split('&');
+            if (token_string.length == 3) {
+                token = token_string[0].split('=')[1];
+                expire = token_string[1].split('=')[1];
+                user_id = token_string[2].split('=')[1];
+                ts = Math.round((new Date()).getTime() / 1000);
+            }
+            settingsStore.setValue('token', token);
+            settingsStore.setValue('expire', expire);
+            settingsStore.setValue('user_id', user_id);
+            settingsStore.setValue('get', ts);
+            settingsStore.sync();
+            getStatus();
+            init_success = true;
+            onPopulate(1, null, "");
+        }
+    });
     this.show = this.dialog.show;
 }
 
+function CapchaDialog(url) {
+
+}
+
+
 // initialize the service
-function vk_search() {
-    dialog = new Dialog();
+function init() {
+    dialog = new AuthDialog();
+
     Amarok.Window.addSettingsMenu("VkAuth", "Авторизация vk.com", 'configure');
     Amarok.Window.SettingsMenu.VkAuth["triggered()"].connect(Amarok.Window.SettingsMenu.VkAuth, dialog.show);
     if (token && user_id) {
@@ -72,7 +82,9 @@ function vk_search() {
         var qurl = new QUrl(path);
         var d = new Downloader(qurl, function(reply){
             reply = JSON.parse(reply);
-            if (reply['response'] == '0') {
+            if (reply['response'] === 0) {
+                init_success = false;
+                dialog = new AuthDialog();
                 dialog.show();
             } else {
                 getStatus();
@@ -80,11 +92,13 @@ function vk_search() {
         });
     }
     if (!user_id || !token) {
+        init_success = false;
+        dialog = new AuthDialog();
         dialog.show();
     }
     Amarok.Engine.trackChanged.connect(
         function() {
-            if (Amarok.Engine.engineState() == 0) {
+            if (Amarok.Engine.engineState() === 0) {
                 setAudioStatus();
             } else {
                 setTextStatus();
@@ -101,14 +115,17 @@ function vk_search() {
             }
         }
     );
-    
+
     Amarok.Engine.trackFinished.connect(
         function() {
             setTextStatus();
         }
     );
-       // setup service
-    ScriptableServiceScript.call( this, "vk_search", 2, "Search & listen music from VK.com", "Vkontakte.ru", true);
+}
+
+function vk_search() {
+    // setup service
+    ScriptableServiceScript.call(this, "vk_search", 2, "Search & listen music from VK.com", "Vkontakte.ru", true);
 }
 
 function getStatus() {
@@ -165,13 +182,14 @@ function onCustomize() {
 }
 
 function VkFetchResult(reply) {
-    reply = JSON.parse(reply)
+    reply = JSON.parse(reply);
     if (reply['error']) {
+        dialog = new AuthDialog();
         dialog.show();
     } else {
         uids = JSON.stringify(reply['response']); //Вместо того, чтобы обрабатывать в цикле, просто сделаем строку и грохнем [] вокруг нее ;)
-        uids = uids.replace('[', '')
-        uids = uids.replace(']', '')
+        uids = uids.replace('[', '');
+        uids = uids.replace(']', '');
         uids=uids+","+user_id;
         var path = "https://api.vk.com/method/users.get?fields=screen_name,photo_medium_rec&uids="+uids+"&access_token="+token;
         var qurl = new QUrl(path);
@@ -182,6 +200,7 @@ function VkFetchResult(reply) {
 function SetFriendsList(reply) {
         reply = JSON.parse(reply);
         if (reply['error']) {
+            dialog = new AuthDialog();
             dialog.show();
         } else {
             users = reply['response'];
@@ -214,6 +233,10 @@ function getAudio(reply) {
     if (reply['error']) {
         // Error codes from http://vk.com/developers.php?oid=-1&p=audio.edit
         if (reply['error']["error_code"] == 5) { //User authorization failed.
+        Amarok.debug('######################## 5 #######################');
+
+                dialog = new AuthDialog();
+
             dialog.show();
         }
         if (reply['error']["error_code"] == 201) {
@@ -242,8 +265,10 @@ function getAudio(reply) {
 
 
 function search(reply) {
+    Amarok.debug(reply);
     reply = JSON.parse(reply);
     if (reply['error']) {
+        dialog = new AuthDialog();
         dialog.show();
     } else {
         audiolist = reply['response']; //each entrie represents a music clip
@@ -288,60 +313,62 @@ function search(reply) {
 }
 
 function onPopulate(level, callback, filter) {
-    filter = filter.replace(/\&/g, '%26');
-    filter = filter.trim();
-    currentFilter = filter.toLowerCase();
-    if (currentFilter == "") {
-        if (level == 1) {
-            try {
-                var path = "https://api.vk.com/method/friends.get?order=hints&uid="+user_id+"&access_token="+token;
-                var qurl = new QUrl(path);
+    if (init_success) {
+        filter = filter.replace(/\&/g, '%26');
+        filter = filter.trim();
+        currentFilter = filter.toLowerCase();
+        if (currentFilter === "") {
+            if (level == 1) {
+                try {
+                    var path = "https://api.vk.com/method/friends.get?order=hints&uid="+user_id+"&access_token="+token;
+                    var qurl = new QUrl(path);
+                    Amarok.Window.Statusbar.longMessage( "VK.com: loading data. This need some time, depending on the speed of your internet connection..." );
+                    var d = new Downloader(qurl, VkFetchResult);
+                }
+                catch(err) {
+                    Amarok.debug( err );
+                }
+            } else if (level == 0) {
                 Amarok.Window.Statusbar.longMessage( "VK.com: loading data. This need some time, depending on the speed of your internet connection..." );
-                var d = new Downloader(qurl, VkFetchResult);
-            }
-            catch(err) {
-                Amarok.debug( err );
-            }
-        } else if (level == 0) {
-            Amarok.Window.Statusbar.longMessage( "VK.com: loading data. This need some time, depending on the speed of your internet connection..." );
-            Amarok.debug( " Populating audio level..." );
-            Amarok.debug( " url: " +  callback );
-            var path = callback;
-            var qurl = new QUrl(path);
-            var d = new Downloader(qurl, getAudio);
-        }
-    } else {
-        if (level > 0) {
-            try {
-                var path = "https://api.vk.com/method/audio.search?auto_complete=1&count=200&&q="+currentFilter+"&access_token="+token;
+                Amarok.debug( " Populating audio level..." );
+                Amarok.debug( " url: " +  callback );
+                var path = callback;
                 var qurl = new QUrl(path);
-                Amarok.debug(path);
-                var b = new Downloader(qurl, search);
-            } catch(err) {
-                Amarok.debug( err );
+                var d = new Downloader(qurl, getAudio);
             }
         } else {
-            if (typeof unique_songs !== 'undefined') {
-                for (var i = 0; i < unique_songs.length; i++) {
-                    var elt = unique_songs[i];
-                    var artist = elt.artist;
-                    Amarok.debug(artist);
-                    if(artist == callback) {
-                        var title = elt.title;
-                        var url = elt.url;
-                        var item = Amarok.StreamItem;
-                        item.level = 0;
-                        item.callbackData = "";
-                        item.itemName = title;
-                        item.playableUrl = new QUrl(url);
-                        item.artist = artist;
-                        item.coverUrl = "";
-                        script.insertItem(item);
-                    } else {
-                        continue;
-                    }
+            if (level > 0) {
+                try {
+                    var path = "https://api.vk.com/method/audio.search?auto_complete=1&count=200&&q="+currentFilter+"&access_token="+token;
+                    var qurl = new QUrl(path);
+                    Amarok.debug(path);
+                    var b = new Downloader(qurl, search);
+                } catch(err) {
+                    Amarok.debug( err );
                 }
-            script.donePopulating();
+            } else {
+                if (typeof unique_songs !== 'undefined') {
+                    for (var i = 0; i < unique_songs.length; i++) {
+                        var elt = unique_songs[i];
+                        var artist = elt.artist;
+                        Amarok.debug(artist);
+                        if(artist == callback) {
+                            var title = elt.title;
+                            var url = elt.url;
+                            var item = Amarok.StreamItem;
+                            item.level = 0;
+                            item.callbackData = "";
+                            item.itemName = title;
+                            item.playableUrl = new QUrl(url);
+                            item.artist = artist;
+                            item.coverUrl = "";
+                            script.insertItem(item);
+                        } else {
+                            continue;
+                        }
+                    }
+                script.donePopulating();
+                }
             }
         }
     }
@@ -369,6 +396,8 @@ function decode_html(str)
        str = str.replace(/&amp;/g, "\&");
        return str;
 }
+
+init();
 
 var script = new vk_search();
 script.populate.connect(onPopulate);
