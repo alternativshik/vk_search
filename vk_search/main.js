@@ -24,7 +24,7 @@
 Importer.loadQtBinding("qt.core");
 Importer.loadQtBinding("qt.gui");
 Importer.loadQtBinding("qt.network");
-Importer.loadQtBinding("qt.uitools");
+Importer.loadQtBinding("qt.webkit");
 
 //native settings store seems broken
 var settingsStore = new QSettings(Amarok.Info.scriptPath()+"/"+"saved_preferences", QSettings.IniFormat);
@@ -36,11 +36,13 @@ var init_success = true;
 
 
 function AuthDialog() {
-    var UIloader = new QUiLoader(this);
-    var uiFile = new QFile (Amarok.Info.scriptPath() + "/auth.ui");
-    uiFile.open(QIODevice.ReadOnly);
-    this.dialog = UIloader.load(uiFile,this);
-    webView = this.dialog.centralwidget.webView;
+    this.dialog = new QMainWindow(this);
+    this.dialog.geometry = new QRect(0, 0, 649, 489);
+    this.dialog.windowTitle = "VK search auth"
+    var webView = new QWebView(this);
+    webView.geometry = new QRect(0, 0, 651, 491);
+    webView.url = new QUrl("https://oauth.vk.com/oauth/authorize?client_id=2969829&scope=607787&redirect_uri=https://oauth.vk.com/blank.html&display=popup&response_type=token&revoke=1");
+    this.dialog.setCentralWidget(webView);
     webView.urlChanged.connect(this, function(){
         url = webView.url.toString();
         url = url.split('#');
