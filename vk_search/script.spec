@@ -4,7 +4,7 @@ Type=script
 ServiceTypes=KPluginInfo
 
 Name=vk_search
-Comment=A scripted service that lets you search and play music from VK.com
+Comment=A scripted service that lets you search and play music from vk.com.
 
 X-KDE-PluginInfo-Author=Sergey Maltsev
 X-KDE-PluginInfo-Email=alternativshik@gmail.com
