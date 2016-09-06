@@ -37,7 +37,12 @@ var init_success = true;
 
 function AuthDialog() {
     var UIloader = new QUiLoader(this);
-    var uiFile = new QFile (Amarok.Info.scriptPath() + "/auth.ui");
+    var uiFile; var availWidgets = UIloader.availableWidgets();
+    if (availWidgets.indexOf("QWebView") == -1 && availWidgets.indexOf("KWebView") != -1) {
+        uiFile = new QFile (Amarok.Info.scriptPath() + "/auth_kwebview.ui"); //switch to KWebView
+    } else {
+        uiFile = new QFile (Amarok.Info.scriptPath() + "/auth.ui");
+    }
     uiFile.open(QIODevice.ReadOnly);
     this.dialog = UIloader.load(uiFile,this);
     webView = this.dialog.centralwidget.webView;
